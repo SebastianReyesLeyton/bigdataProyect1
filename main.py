@@ -110,6 +110,12 @@ class Project1:
 
         ans.groupby('edad').count()
 
+        # Remove register with age > 99
+        ans = ans.filter(ans.edad <= 99)
+
+        print(ans.groupby('edad').count().collect())
+
+
     def obtainUniqueDataByColumn(self):
 
         ans = {}
@@ -120,7 +126,7 @@ class Project1:
             ans[col] = [ [row[col], row[1]] for row in self.df.groupby(col).count().collect() ]
 
             # Sort the array of unique values
-            ans[col].sort()
+            ans[col].sort(key=lambda x: -1*x[1])
     
         return ans
 
@@ -145,7 +151,7 @@ class Project1:
 
     def storeResults(self, data):
 
-        fs = open(self.results, 'a')
+        fs = open(self.results, 'a', encoding="utf-8")
 
         if ('title' in data): fs.write('# ' + data['title'] + '\n\n')
         if ('subtitle' in data): fs.write('## ' + data['subtitle'] + '\n\n')
@@ -178,7 +184,7 @@ class Project1:
 
 
 def main():
-    app = Project1('results1.md')
+    app = Project1()
     app.start()
 
 main()
