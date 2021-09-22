@@ -1,5 +1,6 @@
 from config import APPNAME, COLUMNS, DATAPATH, RESULTS
 from pyspark.sql import SparkSession
+from pyspark.sql.functions import when
 
 class Project1:
 
@@ -86,9 +87,26 @@ class Project1:
                                         'Por otro lado, se tiene que el atributo zona, presenta un problema en la distinción entre mayusculas y minusculas, ' +
                                         'especificamente con la letra u. Además, se puede evidenciar que los datos de edad presentan algunos valores anormales (outliers)' })
 
-        # MEASURE OF CENTRALITY
+        # SUMMARY OF QUANTITY VARIABLES
 
-        self.df.summary(self.variables['Interval'] + self.variables['Ratio']).show()
+        self.storeResults({ 'subsubtitle': 'Medidas de centralidad' ,'content': str(self.df.select(self.variables['Interval'] + self.variables['Ratio']).summary()) })
+
+    def cleanDataset(self):
+
+        # Remove the servicio, cod_municipio, and cod_departamento columns of dataset
+        ans = self.df.drop('servicio').drop('cod_municipio').drop('cod_departamento')
+        self.loadSize()
+
+        # Correct the zona column
+        ans = ans.withColumn("zona",
+                       when(ans.zona == 'u', 'U')
+                       .otherwise(ans.zona))
+
+        # ans.select('zona').distinct().show()
+
+        ans.groupby('edad').count().show()
+            
+
 
     def obtainUniqueDataByColumn(self):
 
@@ -116,6 +134,9 @@ class Project1:
 
         # Understanding dataset
         self.undertandingDataSet()
+
+        # Action Plan
+        self.cleanDataset()
 
         # Stop the Spark app
         self.spark.stop()
