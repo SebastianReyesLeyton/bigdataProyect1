@@ -77,10 +77,14 @@ class Project1:
         self.storeResults({ 'subsubtitle': 'Valores Unicos', 'content': 'Se realizará es ver cuales son los valores que tiene cada atributo (columna).' })
 
         uniques = self.obtainUniqueDataByColumn()
-        
+        file = str(self.results)
         for col in uniques:
+            self.results = f'{RESULTS}{col}.md'
+            self.cleanFile()
             elements = list(map(str, uniques[col]))
             self.storeResults({ 'subsubsubtitle': col, 'enumeration': elements })
+
+        self.results = str(file)
 
         self.storeResults({ 'content': 'Como podemos observar se tiene que los atributos ' +
                                         'como servicio, cod_municipio y cod_departamento solo presentan 1 elemento dentro de su rango de opciones. ' +
@@ -104,9 +108,7 @@ class Project1:
 
         # ans.select('zona').distinct().show()
 
-        ans.groupby('edad').count().show()
-            
-
+        ans.groupby('edad').count()
 
     def obtainUniqueDataByColumn(self):
 
@@ -115,7 +117,7 @@ class Project1:
         for col in self.df.columns:
 
             # Obtain all unique values of one columns
-            ans[col] = [ row[0] for row in self.df.select(col).distinct().collect() ]
+            ans[col] = [ [row[col], row[1]] for row in self.df.groupby(col).count().collect() ]
 
             # Sort the array of unique values
             ans[col].sort()
