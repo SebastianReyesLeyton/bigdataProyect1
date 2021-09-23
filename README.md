@@ -1,10 +1,32 @@
 # PROYECT 1
+## INSTALLATION OF PYSPARK
 
-how to install pyspark: https://medium.com/tinghaochen/how-to-install-pyspark-locally-94501eefe421
+How to install pyspark: https://medium.com/tinghaochen/how-to-install-pyspark-locally-94501eefe421
+## PRELIMINARY STEPS
 
-Create a folder in the root path with the name results
+1. First, check that you have java jdk was installed in your pc.
+2. Then, check make is installed in your pc.
+2. Into the project folder, create three folders in the root directory:
+    - results/
+    - graphics/
+    - data/
+3. Download the dataset: http://medata.gov.co/dataset/atenciones-en-urgencias.
+4. Move the dataset urgencias.cvs to data folder.
+## RUN APP
 
-command: make start
+Open a terminal in your operating system, and locate yourself whete you have stored the project.
+
+If you are in Linux OS, run the command:
+
+~~~
+make start-ubuntu
+~~~
+
+If you are in Windows OS, run the command:
+
+~~~
+make start-windows
+~~~
 
 ## REFERENCES
 
