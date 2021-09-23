@@ -64,49 +64,51 @@ class Project1:
         self.storeResults({ 'subsubtitle': 'Atributos del dataset', 'enumeration': self.columns, 'content': 'Los atributos de base de datos para urgencias son los siguientes:' })
 
     def undertandingDataSet(self):
+        """
+        Description: This function implement the understanding about dataset
+        """
+        self.storeResults({ 'subtitle': 'Entendimiento de los datos', 'subsubtitle': 'Clasificacion de los atributos' })
 
-        # self.storeResults({ 'subtitle': 'Entendimiento de los datos', 'subsubtitle': 'Clasificacion de los atributos' })
+        # CLASIFICATION OF STATISTICIAN VARIABLES BY EACH FEATURE 
 
-        # # CLASIFICATION OF STATISTICIAN VARIABLES BY EACH FEATURE 
+        self.storeResults({ 'content': 'En primer lugar podemos evidenciar que el dataset maneja desde datos con variable cualitativa y cuantitativa, los cuales podríamos clasificar de la siguiente manera:' })
 
-        # self.storeResults({ 'content': 'En primer lugar podemos evidenciar que el dataset maneja desde datos con variable cualitativa y cuantitativa, los cuales podríamos clasificar de la siguiente manera:' })
+        self.variables['Nominal'] = [ 'cod_eas', 'nombre_eas', 'sexo', 'zona', 'cod_ips', 'nombre_institucion', 'cod_dx_salida', 'nombre_dx', 'servicio' ]
+        self.variables['Ordinal'] = [ 'consecutivo', 'año', 'tipo_usuario', 'tipo_edad', 'cod_departamento', 'cod_municio', 'causa_externa' ]
+        self.variables['Interval'] = [ 'edad' ]
+        self.variables['Ratio'] = [ 'total_atenciones' ]
 
-        # self.variables['Nominal'] = [ 'cod_eas', 'nombre_eas', 'sexo', 'zona', 'cod_ips', 'nombre_institucion', 'cod_dx_salida', 'nombre_dx', 'servicio' ]
-        # self.variables['Ordinal'] = [ 'consecutivo', 'año', 'tipo_usuario', 'tipo_edad', 'cod_departamento', 'cod_municio', 'causa_externa' ]
-        # self.variables['Interval'] = [ 'edad' ]
-        # self.variables['Ratio'] = [ 'total_atenciones' ]
+        self.storeResults({ 'subsubsubtitle': 'Cualitativa - Nominal', 'list': self.variables['Nominal'] })
+        self.storeResults({ 'subsubsubtitle': 'Cualitativa - Ordinal', 'list': self.variables['Ordinal'] })
+        self.storeResults({ 'subsubsubtitle': 'Cuantitativa - Intervalo', 'list': self.variables['Interval'] })
+        self.storeResults({ 'subsubsubtitle': 'Cuantitativa - Razon', 'list': self.variables['Ratio'] })
 
-        # self.storeResults({ 'subsubsubtitle': 'Cualitativa - Nominal', 'list': self.variables['Nominal'] })
-        # self.storeResults({ 'subsubsubtitle': 'Cualitativa - Ordinal', 'list': self.variables['Ordinal'] })
-        # self.storeResults({ 'subsubsubtitle': 'Cuantitativa - Intervalo', 'list': self.variables['Interval'] })
-        # self.storeResults({ 'subsubsubtitle': 'Cuantitativa - Razon', 'list': self.variables['Ratio'] })
+        # UNIQUE VALUES
 
-        # # UNIQUE VALUES
+        self.storeResults({ 'subsubtitle': 'Valores Unicos', 'content': 'Se realizará es ver cuales son los valores que tiene cada atributo (columna).' })
 
-        # self.storeResults({ 'subsubtitle': 'Valores Unicos', 'content': 'Se realizará es ver cuales son los valores que tiene cada atributo (columna).' })
+        uniques = self.obtainUniqueDataByColumn()
+        file = str(self.results)
+        for col in uniques:
+            self.results = f'{RESULTS}{col}.md'
+            self.cleanFile()
+            elements = list(map(str, uniques[col]))
+            self.storeResults({ 'subsubsubtitle': col, 'enumeration': elements })
 
-        # uniques = self.obtainUniqueDataByColumn()
-        # file = str(self.results)
-        # for col in uniques:
-        #     self.results = f'{RESULTS}{col}.md'
-        #     self.cleanFile()
-        #     elements = list(map(str, uniques[col]))
-        #     self.storeResults({ 'subsubsubtitle': col, 'enumeration': elements })
+        self.results = str(file)
 
-        # self.results = str(file)
+        self.storeResults({ 'content': 'Como podemos observar se tiene que los atributos ' +
+                                        'como servicio, cod_municipio y cod_departamento solo presentan 1 elemento dentro de su rango de opciones. ' +
+                                        'Por otro lado, se tiene que el atributo zona, presenta un problema en la distinción entre mayusculas y minusculas, ' +
+                                        'especificamente con la letra u. Además, se puede evidenciar que los datos de edad presentan algunos valores anormales (outliers)' })
 
-        # self.storeResults({ 'content': 'Como podemos observar se tiene que los atributos ' +
-        #                                 'como servicio, cod_municipio y cod_departamento solo presentan 1 elemento dentro de su rango de opciones. ' +
-        #                                 'Por otro lado, se tiene que el atributo zona, presenta un problema en la distinción entre mayusculas y minusculas, ' +
-        #                                 'especificamente con la letra u. Además, se puede evidenciar que los datos de edad presentan algunos valores anormales (outliers)' })
+        # SUMMARY OF QUANTITY VARIABLES
 
-        # # SUMMARY OF QUANTITY VARIABLES
+        self.storeResults({ 'subsubtitle': 'Medidas de centralidad' ,'content': str(self.df.select(self.variables['Interval'] + self.variables['Ratio']).summary()) })
 
-        # self.storeResults({ 'subsubtitle': 'Medidas de centralidad' ,'content': str(self.df.select(self.variables['Interval'] + self.variables['Ratio']).summary()) })
+        # GRAPHICS
 
-        # Graphics
-
-        #self.graphics()
+        # self.graphics()
         
         # df_pandas = self.df.toPandas()
 
@@ -114,10 +116,8 @@ class Project1:
         # heatmap = sns.heatmap(df_pandas.corr(), square=True, annot=True, linewidths=.5, ax=ax)
         # fig = heatmap.get_figure()
         # fig.savefig('graphics/correlation_before.png', bbox_inches='tight')
-        pass
 
     def graphics(self):
-
 
         uniques = self.obtainUniqueDataByColumn()
 
@@ -134,6 +134,11 @@ class Project1:
 
         # Remove the servicio, cod_municipio, and cod_departamento columns of dataset
         self.df = self.df.drop('servicio').drop('cod_municipio').drop('cod_departamento')
+
+        # Remove the servicio column of Nominal variables
+        self.variables['Nominal'].pop()
+
+        # Upload the dimesionality of spark dataset
         self.loadSize()
 
         # Correct the zona column
@@ -146,53 +151,46 @@ class Project1:
         # Remove register with age > 99
         self.df = self.df.filter((self.df.edad <= 99))
 
-        # Transform the sexo column
-        #self.df = self.df.filter(self.df.sexo != 'F')
+        # Transform the sexo column to F=Femenino y M=Masculino
+        # self.df = self.df.filter(self.df.sexo != 'F')
         self.df = self.df.withColumn("sexo", when(self.df.sexo == 'M', 'F')
                                            .when(self.df.sexo == 'H', 'M')
                                            .otherwise(self.df.sexo))
 
-
     def datasetTransformation(self):
-
+        
+        # Call the data cleaning process
         self.dataCleaning()
 
-        print(self.size)
-
-        c = ['cod_eas', 'nombre_eas', 'sexo', 'zona', 'cod_ips', 'nombre_institucion', 'cod_dx_salida', 'nombre_dx']
-
         # Convert the nominal features to numeric values
-        indexer = StringIndexer(inputCols=c, outputCols=[f'{name}_tmp' for name in c ])
+        indexer = StringIndexer( inputCols=self.variables, outputCols=[ f'{name}_tmp' for name in self.variables ])
         self.df = indexer.fit(self.df).transform(self.df)
 
-        self.df = self.df.drop(*c)
+        # Remove the old features
+        self.df = self.df.drop(*self.variables)
 
-        for column in c:
+        # Change the name of features to older names
+        for column in self.variables:
             self.df = self.df.withColumnRenamed(f'{column}_tmp', column)
-
-        self.df.show()
 
         # Upload the dataset size
         self.loadSize()
 
         # Upload the column names
         self.columns = list(self.df.columns)
-        print(self.columns)
 
+        # Create a pandas dataframe
         ans_pandas = self.df.toPandas()
 
+        # Create and store the confussion matrix
         f, ax = plt.subplots(figsize=(20, 15))
         heatmap = sns.heatmap(ans_pandas.corr(), square=True, annot=True, linewidths=.5, ax=ax)
         fig = heatmap.get_figure()
         fig.savefig('graphics/correlation.png', bbox_inches='tight')
 
-        print(ans_pandas.shape)
-
-
-        self.df.groupby('año').count().show()
-
     def prediction(self):
-
+        # Split the data into training and test sets (30% held out for testing)
+        # (trainingData, testData) = data.randomSplit([0.7, 0.3])
         pass
 
 
