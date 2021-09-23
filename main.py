@@ -189,6 +189,12 @@ class Project1:
 
         pass
 
+        # Remove register with age > 99
+        ans = ans.filter(ans.edad <= 99)
+
+        print(ans.groupby('edad').count().collect())
+
+
     def obtainUniqueDataByColumn(self):
 
         ans = {}
