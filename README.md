@@ -2,6 +2,8 @@
 
 how to install pyspark: https://medium.com/tinghaochen/how-to-install-pyspark-locally-94501eefe421
 
+Create a folder in the root path with the name results
+
 command: make start
 
 ## REFERENCES
