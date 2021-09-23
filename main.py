@@ -1,11 +1,13 @@
 from config import APPNAME, COLUMNS, DATAPATH, RESULTS
 from pyspark.sql import SparkSession
 from pyspark.sql.functions import when, isnan, count, col
+from pyspark.ml.feature import StringIndexer
+
 import pandas as pd
 import matplotlib.pyplot as plt
-from sklearn import preprocessing
-from sklearn.preprocessing import StandardScaler
+
 import seaborn as sns
+
 class Project1:
 
     def __init__(self, result='result.md'):
@@ -105,20 +107,14 @@ class Project1:
         # Graphics
 
         #self.graphics()
-
-        # OTHER 
-
-        df_pandas = self.df.toPandas()
-
-        le = preprocessing.LabelEncoder()
-        df_pandas = df_pandas.apply(le.fit_transform)
         
-        self.df = self.spark.createDataFrame(df_pandas)
+        # df_pandas = self.df.toPandas()
 
-        f, ax = plt.subplots(figsize=(20, 15))
-        heatmap = sns.heatmap(df_pandas.corr(), square=True, annot=True, linewidths=.5, ax=ax)
-        fig = heatmap.get_figure()
-        fig.savefig('graphics/correlation_before.png', bbox_inches='tight')
+        # f, ax = plt.subplots(figsize=(20, 15))
+        # heatmap = sns.heatmap(df_pandas.corr(), square=True, annot=True, linewidths=.5, ax=ax)
+        # fig = heatmap.get_figure()
+        # fig.savefig('graphics/correlation_before.png', bbox_inches='tight')
+        pass
 
     def graphics(self):
 
@@ -137,25 +133,53 @@ class Project1:
     def dataCleaning(self):
 
         # Remove the servicio, cod_municipio, and cod_departamento columns of dataset
-        ans = self.df.drop('servicio').drop('cod_municipio').drop('cod_departamento')
+        self.df = self.df.drop('servicio').drop('cod_municipio').drop('cod_departamento')
         self.loadSize()
 
         # Correct the zona column
-        ans = ans.withColumn("zona",
-                       when(ans.zona == 'u', 'U')
-                       .otherwise(ans.zona))
+        self.df = self.df.withColumn("zona",
+                       when(self.df.zona == 'u', 'U')
+                       .otherwise(self.df.zona))
 
         # ans.select('zona').distinct().show()
 
         # Remove register with age > 99
-        ans = ans.filter((ans.edad <= 99))
+        self.df = self.df.filter((self.df.edad <= 99))
 
-        # # Remove F of sexo column
-        # ans = ans.filter(ans.sexo != 'F')
+        # Transform the sexo column
+        #self.df = self.df.filter(self.df.sexo != 'F')
+        self.df = self.df.withColumn("sexo", when(self.df.sexo == 'M', 'F')
+                                           .when(self.df.sexo == 'H', 'M')
+                                           .otherwise(self.df.sexo))
 
-        ans_pandas = ans.toPandas()
 
-        ans_pandas.drop_duplicates()
+    def datasetTransformation(self):
+
+        self.dataCleaning()
+
+        print(self.size)
+
+        c = ['cod_eas', 'nombre_eas', 'sexo', 'zona', 'cod_ips', 'nombre_institucion', 'cod_dx_salida', 'nombre_dx']
+
+        # Convert the nominal features to numeric values
+        indexer = StringIndexer(inputCols=c, outputCols=[f'{name}_tmp' for name in c ])
+        self.df = indexer.fit(self.df).transform(self.df)
+
+        self.df = self.df.drop(*c)
+
+        for column in c:
+            self.df = self.df.withColumnRenamed(f'{column}_tmp', column)
+
+        self.df.show()
+
+        # Upload the dataset size
+        self.loadSize()
+
+        # Upload the column names
+        self.columns = list(self.df.columns)
+        print(self.columns)
+
+        ans_pandas = self.df.toPandas()
 
         f, ax = plt.subplots(figsize=(20, 15))
         heatmap = sns.heatmap(ans_pandas.corr(), square=True, annot=True, linewidths=.5, ax=ax)
@@ -164,35 +188,12 @@ class Project1:
 
         print(ans_pandas.shape)
 
-        #convertir edad a tipo numero
-
-        self.df = self.spark.createDataFrame(ans_pandas)
-
-    def datasetTransformation(self):
-
-        self.dataCleaning()
-
-        self.df = self.df.filter(self.df.nombre_dx == 'OTROS DOLORES ABDOMINALES Y LOS NO ESPECIFICADOS')
-
-        self.df = self.df.drop('nombre_dx')
-
-        self.loadSize()
-
-        self.columns = list(self.df.columns)
-
-        print(self.columns)
-        print(self.size)
 
         self.df.groupby('año').count().show()
 
     def prediction(self):
 
         pass
-
-        # Remove register with age > 99
-        ans = ans.filter(ans.edad <= 99)
-
-        print(ans.groupby('edad').count().collect())
 
 
     def obtainUniqueDataByColumn(self):
