@@ -1,7 +1,8 @@
 from config import APPNAME, COLUMNS, DATAPATH, RESULTS
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import when, isnan, count, col
+from pyspark.sql.functions import when, isnan, count, col, desc
 from pyspark.ml.feature import StringIndexer
+from pyspark.ml.classification import LinearSVC
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -78,10 +79,10 @@ class Project1:
         self.variables['Interval'] = [ 'edad' ]
         self.variables['Ratio'] = [ 'total_atenciones' ]
 
-        self.storeResults({ 'subsubsubtitle': 'Cualitativa - Nominal', 'list': self.variables['Nominal'] })
-        self.storeResults({ 'subsubsubtitle': 'Cualitativa - Ordinal', 'list': self.variables['Ordinal'] })
-        self.storeResults({ 'subsubsubtitle': 'Cuantitativa - Intervalo', 'list': self.variables['Interval'] })
-        self.storeResults({ 'subsubsubtitle': 'Cuantitativa - Razon', 'list': self.variables['Ratio'] })
+        # self.storeResults({ 'subsubsubtitle': 'Cualitativa - Nominal', 'list': self.variables['Nominal'] })
+        # self.storeResults({ 'subsubsubtitle': 'Cualitativa - Ordinal', 'list': self.variables['Ordinal'] })
+        # self.storeResults({ 'subsubsubtitle': 'Cuantitativa - Intervalo', 'list': self.variables['Interval'] })
+        # self.storeResults({ 'subsubsubtitle': 'Cuantitativa - Razon', 'list': self.variables['Ratio'] })
 
         # UNIQUE VALUES
 
@@ -136,7 +137,7 @@ class Project1:
         self.df = self.df.drop('servicio').drop('cod_municipio').drop('cod_departamento')
 
         # Remove the servicio column of Nominal variables
-        self.variables['Nominal'].pop()
+        self.variables['Nominal'] = ['cod_eas', 'nombre_eas', 'sexo', 'zona', 'cod_ips', 'nombre_institucion', 'cod_dx_salida', 'nombre_dx']
 
         # Upload the dimesionality of spark dataset
         self.loadSize()
@@ -163,14 +164,22 @@ class Project1:
         self.dataCleaning()
 
         # Convert the nominal features to numeric values
-        indexer = StringIndexer( inputCols=self.variables, outputCols=[ f'{name}_tmp' for name in self.variables ])
+        indexer = StringIndexer( inputCols=self.variables['Nominal'], outputCols=[ f'{name}_tmp' for name in self.variables['Nominal'] ])
         self.df = indexer.fit(self.df).transform(self.df)
 
         # Remove the old features
         self.df = self.df.drop(*self.variables)
 
+        print(self.df.columns)
+
+        # Resume the database
+
+        self.df = self.df.filter((self.df.cod_ips == 50010214401))
+
+        self.df.show()
+
         # Change the name of features to older names
-        for column in self.variables:
+        for column in self.variables['Nominal']:
             self.df = self.df.withColumnRenamed(f'{column}_tmp', column)
 
         # Upload the dataset size
@@ -187,6 +196,8 @@ class Project1:
         heatmap = sns.heatmap(ans_pandas.corr(), square=True, annot=True, linewidths=.5, ax=ax)
         fig = heatmap.get_figure()
         fig.savefig('graphics/correlation.png', bbox_inches='tight')
+
+        self.df().sort(desc('consecutivo'))
 
     def prediction(self):
         # Split the data into training and test sets (30% held out for testing)
