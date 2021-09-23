@@ -1,8 +1,11 @@
 from config import APPNAME, COLUMNS, DATAPATH, RESULTS
-from pyspark.sql import SparkSession
+from pyspark.sql import SparkSession, Row
 from pyspark.sql.functions import when, isnan, count, col, desc
-from pyspark.ml.feature import StringIndexer
-from pyspark.ml.classification import LinearSVC
+from pyspark.ml.feature import StringIndexer, VectorAssembler
+from pyspark.ml.classification import LogisticRegression
+from pyspark.ml import Pipeline
+from pyspark.ml.linalg import Vectors
+from pyspark.mllib.evaluation import MulticlassMetrics
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -24,7 +27,7 @@ class Project1:
                            'Ordinal': [],
                            'Interval': [], 
                            'Ratio': []}
-
+        self.stage = []
         self.cleanFile()                # Clean data into the result file
 
     def createSparkApp(self):
@@ -163,24 +166,66 @@ class Project1:
         # Call the data cleaning process
         self.dataCleaning()
 
-        # Convert the nominal features to numeric values
-        indexer = StringIndexer( inputCols=self.variables['Nominal'], outputCols=[ f'{name}_tmp' for name in self.variables['Nominal'] ])
-        self.df = indexer.fit(self.df).transform(self.df)
-
-        # Remove the old features
-        self.df = self.df.drop(*self.variables)
-
-        print(self.df.columns)
-
-        # Resume the database
-
-        self.df = self.df.filter((self.df.cod_ips == 50010214401))
+        # Filter
+        self.df = self.df.filter((self.df.cod_ips == 50010214401) & (self.df.cod_eas == 'EPS016'))
 
         self.df.show()
 
-        # Change the name of features to older names
-        for column in self.variables['Nominal']:
-            self.df = self.df.withColumnRenamed(f'{column}_tmp', column)
+        self.df = self.df.drop(*['cod_eas', 'cod_ips', 'nombre_eas', 'cod_dx_salida', 'nombre_institucion'])
+        self.variables['Nominal'] = [ u for u in ['cod_eas', 'nombre_eas', 'sexo', 'zona', 'cod_ips', 'nombre_institucion', 'cod_dx_salida'] if u not in ['cod_eas', 'cod_ips', 'nombre_eas', 'cod_dx_salida', 'nombre_institucion']]
+
+        print(self.variables['Nominal'])
+
+         # Upload the column names
+        self.columns = list(self.df.columns)
+
+        uniques = self.obtainUniqueDataByColumn()
+        file = str(self.results)
+        for col in uniques:
+            self.results = f'{RESULTS}{col}-{50010214401}.md'
+            self.cleanFile()
+            elements = list(map(str, uniques[col]))
+            self.storeResults({ 'subsubsubtitle': col, 'enumeration': elements })
+
+        self.results = str(file)
+
+        print(self.df.columns)
+        
+        # Convert the nominal features to numeric values
+        indexer = StringIndexer( inputCols=self.variables['Nominal'], outputCols=[ f'{name}_Index' for name in self.variables['Nominal'] ])
+        self.df = indexer.fit(self.df).transform(self.df)
+
+        self.df.show()
+
+        self.df = self.df.drop(*self.variables['Nominal'])
+        self.df.show()
+
+        for col in self.variables['Nominal']:
+            self.df = self.df.withColumnRenamed(f'{col}_Index', col)
+        
+        print(self.df.columns)
+
+        label_indexer = StringIndexer( inputCol='nombre_dx', outputCol='nombre_dx_Index')
+        self.df = label_indexer.fit(self.df).transform(self.df)
+
+        features = [ Vectors.dense(r['sexo'], 
+                                 r['zona'], 
+                                 r['consecutivo'], 
+                                 r['año'], 
+                                 r['edad'], 
+                                 r['tipo_edad'], 
+                                 r['causa_externa'], 
+                                 r['total_atenciones'] ) for r in self.df.collect() ]
+
+        self.df = self.spark.createDataFrame([ Row(features=r, label=l['label']) for r, l in zip(features, self.df.select('label').collect())])
+
+        # Create and store the confussion matrix
+        f, ax = plt.subplots(figsize=(20, 15))
+        heatmap = sns.heatmap(self.df.toPandas().corr(), square=True, annot=True, linewidths=.5, ax=ax)
+        fig = heatmap.get_figure()
+        fig.savefig('graphics/correlation.png', bbox_inches='tight')
+
+        self.df.show()
 
         # Upload the dataset size
         self.loadSize()
@@ -188,21 +233,32 @@ class Project1:
         # Upload the column names
         self.columns = list(self.df.columns)
 
-        # Create a pandas dataframe
-        ans_pandas = self.df.toPandas()
+        print(self.df.columns)
 
-        # Create and store the confussion matrix
-        f, ax = plt.subplots(figsize=(20, 15))
-        heatmap = sns.heatmap(ans_pandas.corr(), square=True, annot=True, linewidths=.5, ax=ax)
-        fig = heatmap.get_figure()
-        fig.savefig('graphics/correlation.png', bbox_inches='tight')
-
-        self.df().sort(desc('consecutivo'))
 
     def prediction(self):
         # Split the data into training and test sets (30% held out for testing)
-        # (trainingData, testData) = data.randomSplit([0.7, 0.3])
-        pass
+
+
+        train, test = self.df.randomSplit([0.5, 0.5])
+
+        lr = LogisticRegression(featuresCol= 'features', labelCol = 'label')
+        model_lr = lr.fit(train)
+
+        # predictionAndLabels = test.map(lambda lp: (float(model_lr.predict(lp.features)), lp.label))
+
+        # print(predictionAndLabels)
+        
+        # metrics = MulticlassMetrics(predictionAndLabels)
+
+        # # Overall statistics
+        # precision = metrics.precision()
+        # recall = metrics.recall()
+        # f1Score = metrics.fMeasure()
+        # print("Summary Stats")
+        # print("Precision = %s" % precision)
+        # print("Recall = %s" % recall)
+        # print("F1 Score = %s" % f1Score)
 
 
     def obtainUniqueDataByColumn(self):
@@ -230,7 +286,7 @@ class Project1:
         self.initialization()
 
         # Understanding dataset
-        self.undertandingDataSet()
+        #self.undertandingDataSet()
 
         # Action Plan
         self.datasetTransformation()
